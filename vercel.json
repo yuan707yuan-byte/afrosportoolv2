@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "devCommand": "next dev",
+  "installCommand": "npm install",
+  "env": {
+    "ANTHROPIC_API_KEY": "@anthropic-api-key",
+    "FOOTBALL_API_KEY": "@football-api-key"
+  },
+  "functions": {
+    "pages/api/*.js": {
+      "maxDuration": 30
+    }
+  }
+}
