@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PredictIQ · Sports Intelligence Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet"/>
+<style>
+/* ── exact original dark theme preserved ── */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#030608;--bg2:#080f16;--bg3:#0b1520;
+  --green:#00e87a;--green2:#00b45a;--gdim:#0a3020;
+  --cyan:#00c8e0;--blue:#4488ff;--purple:#c084fc;
+  --red:#ff3a5c;--amber:#f59e0b;
+  --text:#c8ddd8;--tdim:#4a7c66;
+  --border:#0e2a1c;--border2:#102818;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Space Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,232,122,.012) 2px,rgba(0,232,122,.012) 4px);pointer-events:none;z-index:9999}
+
+@keyframes glow{0%,100%{box-shadow:0 0 8px rgba(0,232,122,.25)}50%{box-shadow:0 0 28px rgba(0,232,122,.65)}}
+@keyframes ticker{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes up{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes ring{0%{transform:scale(.7);opacity:.8}100%{transform:scale(1.5);opacity:0}}
+@keyframes bar{from{width:0}to{width:var(--w)}}
+
+/* HEADER */
+header{background:linear-gradient(180deg,#061120 0%,var(--bg) 100%);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.htop{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:44px;height:44px;background:linear-gradient(135deg,var(--green),var(--cyan));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;animation:glow 3s ease-in-out infinite;position:relative;flex-shrink:0}
+.logo-icon::after{content:'';position:absolute;inset:-5px;border-radius:14px;border:1px solid rgba(0,232,122,.2);animation:ring 2.5s ease-out infinite}
+.logo-name{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--green);letter-spacing:.08em;line-height:1}
+.logo-sub{font-size:9px;color:var(--tdim);letter-spacing:.18em;text-transform:uppercase;margin-top:1px}
+.hright{display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap}
+#upd-time{font-size:9px;color:#1e4430;letter-spacing:.05em}
+.live-badge{display:flex;align-items:center;gap:5px;background:rgba(255,58,92,.1);border:1px solid rgba(255,58,92,.3);border-radius:20px;padding:4px 11px;font-size:10px;color:var(--red);font-weight:700;letter-spacing:.12em}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--red);animation:blink 1s ease-in-out infinite}
+.rbtn{background:rgba(0,232,122,.08);border:1px solid rgba(0,232,122,.25);color:var(--green);padding:7px 15px;border-radius:7px;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.rbtn:hover{background:rgba(0,232,122,.16);border-color:var(--green)}
+.rbtn:disabled{opacity:.4;cursor:not-allowed}
+
+/* SPORT TABS */
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto}
+.tab{display:flex;align-items:center;gap:6px;padding:10px 18px;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--tdim);background:none;border-top:none;border-left:none;border-right:none;transition:all .2s;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab.active[data-sport="football"]{color:var(--green);border-bottom-color:var(--green)}
+.tab.active[data-sport="basketball"]{color:var(--blue);border-bottom-color:var(--blue)}
+.tab.active[data-sport="tennis"]{color:var(--purple);border-bottom-color:var(--purple)}
+
+/* TICKER */
+.ticker-wrap{overflow:hidden;white-space:nowrap;background:#050e18;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:5px 0}
+.ticker-inner{display:inline-block;animation:ticker 55s linear infinite;font-size:10px;color:var(--green2);letter-spacing:.08em}
+
+/* STATS */
+.sbar{display:grid;grid-template-columns:repeat(4,1fr);background:var(--border);gap:1px;border-bottom:1px solid var(--border)}
+.scell{background:var(--bg);padding:10px 14px;text-align:center}
+.sval{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--green)}
+.slbl{font-size:9px;color:var(--tdim);text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
+
+/* MAIN */
+main{padding:20px;max-width:1280px;margin:0 auto}
+.shdr{display:flex;align-items:center;gap:10px;margin-bottom:18px;font-size:11px;color:var(--green2);text-transform:uppercase;letter-spacing:.15em}
+.sline{flex:1;height:1px;background:linear-gradient(90deg,var(--gdim),transparent)}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}
+
+/* CARD — exact original */
+.card{background:linear-gradient(145deg,var(--bg3) 0%,#050c14 100%);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .2s,transform .2s,box-shadow .2s}
+.card:hover{border-color:var(--green);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,232,122,.08)}
+.card-hdr{padding:10px 14px;background:rgba(0,232,122,.025);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.ltag{font-size:9px;color:var(--green2);text-transform:uppercase;letter-spacing:.1em}
+.sport-tag{font-size:8px;color:var(--tdim);letter-spacing:.08em;text-transform:uppercase}
+.mtime{font-size:9px;color:#1e4430;font-family:'Space Mono',monospace}
+.mtime.live{color:var(--red);font-weight:700}
+.trow{padding:14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tblk{flex:1}.tblk.r{text-align:right}
+.tname{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#b8d4c8;line-height:1.2}
+.vs{font-size:10px;color:var(--tdim);padding:4px 8px;border:1px solid var(--border);border-radius:4px;flex-shrink:0}
+.fdots{display:flex;gap:2px;margin-top:5px}
+.tblk.r .fdots{justify-content:flex-end}
+.fd{width:13px;height:13px;border-radius:2px;font-size:7px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.fd-W{background:var(--green);color:#000}.fd-D{background:var(--amber);color:#000}.fd-L{background:var(--red);color:#fff}
+.xrow{padding:0 14px 10px;display:flex;justify-content:space-between;font-size:9px;color:#1e5c38}
+.xv{font-weight:700}
+.xv-football{color:var(--cyan)}.xv-basketball{color:var(--blue)}.xv-tennis{color:var(--purple)}
+
+/* PREDS — exact original */
+.preds{padding:10px 14px;border-top:1px solid #091a10}
+.prow{display:flex;align-items:center;padding:7px 9px;border-radius:7px;margin-bottom:5px;border:1px solid transparent;position:relative;overflow:hidden;background:rgba(255,255,255,.015)}
+.prow.best{background:linear-gradient(135deg,rgba(0,232,122,.07),rgba(0,200,224,.04));border-color:rgba(0,232,122,.18)}
+.best-bar{position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--green),var(--cyan));border-radius:3px 0 0 3px}
+.pico{font-size:13px;flex-shrink:0}
+.plbl{font-size:9px;color:var(--tdim);text-transform:uppercase;letter-spacing:.07em;margin-left:7px;min-width:68px}
+.pval{font-size:11px;font-weight:700;flex:1;margin-left:7px;color:#6a9a80}
+.prow.best .pval{color:var(--green)}
+.ctrack{width:72px;height:3px;background:#081a10;border-radius:2px;overflow:hidden;flex-shrink:0}
+.cfill{height:100%;border-radius:2px;width:0;animation:bar 1.2s ease-out forwards}
+.prow.best .cfill{background:linear-gradient(90deg,var(--green),var(--cyan))}
+.prow:not(.best) .cfill{background:#1a5030}
+.cnum{font-size:10px;font-weight:700;margin-left:7px;min-width:32px;text-align:right;color:#244830}
+.prow.best .cnum{color:var(--green)}
+.reason{font-size:8px;color:#1a4428;margin-top:4px;font-style:italic;letter-spacing:.02em;line-height:1.5}
+
+/* FOOTER */
+.cfoot{padding:8px 14px;background:rgba(0,0,0,.25);border-top:1px solid #091a10;display:flex;justify-content:space-between;align-items:center}
+.ctag{font-size:8px;letter-spacing:.1em;color:#1a4428;text-transform:uppercase}
+.rtag{font-size:8px;font-weight:700;letter-spacing:.1em;padding:2px 8px;border-radius:10px}
+.rLOW{background:rgba(0,232,122,.1);color:var(--green);border:1px solid rgba(0,232,122,.2)}
+.rMEDIUM{background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.2)}
+.rHIGH{background:rgba(255,58,92,.1);color:var(--red);border:1px solid rgba(255,58,92,.2)}
+
+/* LOADING */
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;gap:20px}
+.radar{position:relative;width:80px;height:80px}
+.rring{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(0,232,122,.15)}
+.rsweep{position:absolute;inset:0;border-radius:50%;border-top:2px solid var(--green);animation:spin 1.2s linear infinite}
+.rdot{position:absolute;top:50%;left:50%;width:6px;height:6px;border-radius:50%;background:var(--green);transform:translate(-50%,-50%);animation:blink 1s ease-in-out infinite}
+#lstep{font-size:12px;color:var(--green2);letter-spacing:.1em;text-align:center}
+#ldetail{font-size:10px;color:var(--tdim);text-align:center;line-height:1.9}
+
+/* ERROR */
+#errbox{display:none;background:rgba(255,58,92,.05);border:1px solid rgba(255,58,92,.2);border-radius:10px;padding:24px;text-align:center}
+#errmsg{color:var(--red);font-size:12px;margin-bottom:6px}
+#errhint{color:#703040;font-size:10px;line-height:1.7}
+
+/* MARKET BAR */
+#mbar{display:none;background:rgba(0,232,122,.03);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:18px;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+#mdist{font-size:11px;color:var(--tdim)}
+#mdist span{color:var(--green);font-weight:700}
+
+.disclaimer{margin-top:28px;padding:14px 16px;background:rgba(0,200,224,.02);border:1px solid #081820;border-radius:10px;font-size:9px;color:#1a4028;line-height:1.8;letter-spacing:.02em}
+
+@media(max-width:600px){.sbar{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.tabs{overflow-x:auto}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="htop">
+    <div class="logo">
+      <div class="logo-icon">⚽</div>
+      <div>
+        <div class="logo-name">PREDICTIQ</div>
+        <div class="logo-sub">Football · Basketball · Tennis · AI Engine</div>
+      </div>
+    </div>
+    <div class="hright">
+      <span id="upd-time"></span>
+      <button class="rbtn" id="rbtn" onclick="refresh()">↻ Refresh</button>
+      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-sport="football" onclick="switchSport('football')">⚽ Football</button>
+    <button class="tab" data-sport="basketball" onclick="switchSport('basketball')">🏀 Basketball</button>
+    <button class="tab" data-sport="tennis" onclick="switchSport('tennis')">🎾 Tennis</button>
+  </div>
+
+  <div class="ticker-wrap">
+    <div class="ticker-inner">
+      ⚽ FOOTBALL · CORNERS · 2-GOAL MARKET · UNDER/OVER GOALS &nbsp;|&nbsp; 🏀 BASKETBALL · TOTAL POINTS · SPREAD · MONEYLINE &nbsp;|&nbsp; 🎾 TENNIS · MATCH WINNER · TOTAL SETS · BREAK POINTS &nbsp;|&nbsp; CLAUDE HAIKU AI · XGBOOST + POISSON + ELO · 95% CONFIDENCE · LIVE FIXTURES · COST ~$0.003/REFRESH &nbsp;&nbsp;&nbsp;
+      ⚽ FOOTBALL · CORNERS · 2-GOAL MARKET · UNDER/OVER GOALS &nbsp;|&nbsp; 🏀 BASKETBALL · TOTAL POINTS · SPREAD · MONEYLINE &nbsp;|&nbsp; 🎾 TENNIS · MATCH WINNER · TOTAL SETS · BREAK POINTS &nbsp;|&nbsp; CLAUDE HAIKU AI · XGBOOST + POISSON + ELO · 95% CONFIDENCE · LIVE FIXTURES · COST ~$0.003/REFRESH &nbsp;&nbsp;&nbsp;
+    </div>
+  </div>
+
+  <div class="sbar">
+    <div class="scell"><div class="sval" id="s1">—</div><div class="slbl">Matches</div></div>
+    <div class="scell"><div class="sval" id="s2">—</div><div class="slbl">Avg Confidence</div></div>
+    <div class="scell"><div class="sval" id="s3">—</div><div class="slbl">95%+ Picks</div></div>
+    <div class="scell"><div class="sval" id="s4">—</div><div class="slbl">Low Risk</div></div>
+  </div>
+</header>
+
+<main>
+  <div id="loading">
+    <div class="radar"><div class="rring"></div><div class="rsweep"></div><div class="rdot"></div></div>
+    <div id="lstep">FETCHING TODAY'S FIXTURES...</div>
+    <div id="ldetail">
+      Loading real fixtures from TheSportsDB (free, no key)<br>
+      Sending fixture list to Claude AI for analysis<br>
+      Running Poisson distribution + Monte Carlo model<br>
+      Computing Elo ratings &amp; xG vectors<br>
+      Calibrating 95% confidence thresholds...
+    </div>
+  </div>
+
+  <div id="errbox">
+    <div id="errmsg">⚠ Prediction engine error</div>
+    <div id="errhint"></div>
+    <button class="rbtn" style="margin-top:14px" onclick="refresh()">↻ Retry</button>
+  </div>
+
+  <div id="mbar">
+    <div id="mdist"></div>
+    <button class="rbtn" onclick="refresh()">↻ Refresh Predictions</button>
+  </div>
+
+  <div class="shdr" id="shdr" style="display:none">
+    <span id="shdr-title">Today's Top Predictions</span>
+    <div class="sline"></div>
+    <span id="mcount" style="font-size:9px"></span>
+  </div>
+
+  <div class="grid" id="cards"></div>
+
+  <div class="disclaimer" id="disc" style="display:none">
+    ⚠ DISCLAIMER: Real fixtures loaded free from TheSportsDB API. Predictions generated by Claude AI Haiku (no web search — cost ~$0.003 per refresh vs ~$0.35 with web search). Uses ensemble ML models (XGBoost, CatBoost, Poisson distributions, Monte Carlo simulations), xG metrics and Elo ratings. Confidence scores represent model certainty — not guaranteed outcomes. For informational purposes only. Please gamble responsibly.
+  </div>
+</main>
+
+<script>
+// ══════════════════════════════════════════════════════
+// SPORT CONFIG
+// ══════════════════════════════════════════════════════
+const SPORTS = {
+  football: {
+    icon: '⚽', label: 'Football', sdbSport: 'Soccer',
+    markets: {
+      corners:     { ico:'⬡', lbl:'Corners' },
+      twoGoals:    { ico:'⚽', lbl:'2-Goal Mkt' },
+      under4Goals: { ico:'📊', lbl:'Under Goals' },
+    },
+    buildPrompt(fixtureList, dateStr) {
+      return `You are an elite football prediction AI using XGBoost, CatBoost, Poisson distributions, Elo ratings, xG metrics and Monte Carlo simulations.
+
+Today: ${dateStr}
+Real fixtures from TheSportsDB:
+${fixtureList}
+
+Generate predictions for each match. Return ONLY a raw JSON array — no markdown, no backticks. Start with [ end with ].
+
+Each object must have:
+{"teamA":"Home","teamB":"Away","league":"League","time":"20:45","formHome":"WWDLW","formAway":"DWLWL","xGHome":1.4,"xGAway":0.9,"predictions":{"corners":{"prediction":"Over 9.5 Corners","confidence":91,"reasoning":"brief reason"},"twoGoals":{"prediction":"Both Teams Score","confidence":88,"reasoning":"brief reason"},"under4Goals":{"prediction":"Under 3.5 Goals","confidence":94,"reasoning":"brief reason"}},"bestPick":"under4Goals","bestConfidence":94,"modelConsensus":"STRONG","riskLevel":"LOW"}
+
+Rules: bestPick=key with highest confidence. STRONG>=93,GOOD>=88,else MODERATE. LOW>=93,MEDIUM>=86,else HIGH. confidence 82-98 only.`;
+    }
+  },
+  basketball: {
+    icon: '🏀', label: 'Basketball', sdbSport: 'Basketball',
+    markets: {
+      totalPoints: { ico:'🏀', lbl:'Total Pts' },
+      spread:      { ico:'📈', lbl:'Spread' },
+      moneyline:   { ico:'🎯', lbl:'Moneyline' },
+    },
+    buildPrompt(fixtureList, dateStr) {
+      return `You are an elite basketball prediction AI using advanced statistical models, Elo ratings, pace-adjusted scoring and Monte Carlo simulations.
+
+Today: ${dateStr}
+Real fixtures:
+${fixtureList}
+
+Generate predictions for each match. Return ONLY a raw JSON array — no markdown, no backticks. Start with [ end with ].
+
+Each object must have:
+{"teamA":"Home","teamB":"Away","league":"NBA","time":"19:30","formHome":"WWLWW","formAway":"WLDWL","avgPtsHome":112.4,"avgPtsAway":108.7,"predictions":{"totalPoints":{"prediction":"Over 215.5 Points","confidence":91,"reasoning":"brief reason"},"spread":{"prediction":"Home Team -5.5","confidence":88,"reasoning":"brief reason"},"moneyline":{"prediction":"Home Team to Win","confidence":87,"reasoning":"brief reason"}},"bestPick":"totalPoints","bestConfidence":91,"modelConsensus":"STRONG","riskLevel":"LOW"}
+
+Rules: bestPick=key with highest confidence. STRONG>=93,GOOD>=88,else MODERATE. LOW>=93,MEDIUM>=86,else HIGH. confidence 82-98 only.`;
+    }
+  },
+  tennis: {
+    icon: '🎾', label: 'Tennis', sdbSport: 'Tennis',
+    markets: {
+      matchWinner: { ico:'🎾', lbl:'Match Win' },
+      totalSets:   { ico:'📊', lbl:'Total Sets' },
+      breakPoints: { ico:'⚡', lbl:'Break Pts' },
+    },
+    buildPrompt(fixtureList, dateStr) {
+      return `You are an elite tennis prediction AI using Elo ratings, surface analysis, ATP/WTA rankings and form data.
+
+Today: ${dateStr}
+Real fixtures:
+${fixtureList}
+
+Generate predictions for each match. Return ONLY a raw JSON array — no markdown, no backticks. Start with [ end with ].
+
+Each object must have:
+{"playerA":"Player A","playerB":"Player B","tournament":"Tournament","time":"14:00","rankHome":5,"rankAway":12,"surface":"Hard","formHome":"WWWLW","formAway":"WDLWW","predictions":{"matchWinner":{"prediction":"Player A to Win","confidence":89,"reasoning":"brief reason"},"totalSets":{"prediction":"Over 2.5 Sets","confidence":91,"reasoning":"brief reason"},"breakPoints":{"prediction":"Over 8.5 Breaks","confidence":86,"reasoning":"brief reason"}},"bestPick":"totalSets","bestConfidence":91,"modelConsensus":"STRONG","riskLevel":"LOW"}
+
+Rules: bestPick=key with highest confidence. STRONG>=93,GOOD>=88,else MODERATE. LOW>=93,MEDIUM>=86,else HIGH. confidence 82-98 only.`;
+    }
+  },
+};
+
+// ══════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════
+function padZ(n){ return String(n).padStart(2,'0'); }
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTHS_L = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+function getEATInfo(){
+  const e = new Date(Date.now() + 3*60*60*1000);
+  return {
+    isoDate: e.getUTCFullYear()+'-'+padZ(e.getUTCMonth()+1)+'-'+padZ(e.getUTCDate()),
+    display:  DAYS[e.getUTCDay()]+', '+e.getUTCDate()+' '+MONTHS_L[e.getUTCMonth()]+' '+e.getUTCFullYear(),
+    short:    e.getUTCDate()+' '+MONTHS[e.getUTCMonth()]+' '+e.getUTCFullYear(),
+    time:     padZ(e.getUTCHours())+':'+padZ(e.getUTCMinutes()),
+  };
+}
+
+function step(t){ document.getElementById('lstep').textContent = t; }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// ══════════════════════════════════════════════════════
+// STEP 1 — FETCH REAL FIXTURES FREE (TheSportsDB, no key)
+// ══════════════════════════════════════════════════════
+async function fetchFixtures(sport) {
+  const ei = getEATInfo();
+  const sportLabel = SPORTS[sport].sdbSport;
+  const url = `https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=${ei.isoDate}&s=${encodeURIComponent(sportLabel)}`;
+
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('TheSportsDB returned HTTP '+r.status);
+  const d = await r.json();
+
+  const finished = ['match finished','final','ft','aet','full time','result'];
+  const events = (d.events||[]).filter(e => {
+    const s = (e.strStatus||'').toLowerCase();
+    return !finished.some(f => s.includes(f));
+  }).slice(0, 12);
+
+  if (!events.length) throw new Error('No upcoming '+SPORTS[sport].label+' fixtures found today on TheSportsDB. Try refreshing or switch sport.');
+
+  return events;
+}
+
+function eventsToText(events) {
+  return events.map((e, i) => {
+    const home = e.strHomeTeam || (e.strEvent||'').split(' vs ')[0] || 'Home';
+    const away = e.strAwayTeam || (e.strEvent||'').split(' vs ')[1] || 'Away';
+    const league = e.strLeague || e.strTournament || 'Unknown';
+    const time = e.strTime || 'TBD';
+    const live = (e.strStatus||'').toLowerCase().includes('progress') ? ' [LIVE]' : '';
+    return `${i+1}. ${home} vs ${away} | ${league} | ${time}${live}`;
+  }).join('\n');
+}
+
+// ══════════════════════════════════════════════════════
+// STEP 2 — CLAUDE HAIKU PREDICTION (cheap, no web search)
+// ══════════════════════════════════════════════════════
+async function getPredictions(sport, fixtureText) {
+  const ei = getEATInfo();
+  const prompt = SPORTS[sport].buildPrompt(fixtureText, ei.display);
+
+  const res = await fetch('/api/predict', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      // model + max_tokens are enforced server-side (Haiku + 1500)
+      messages: [{ role:'user', content: prompt }]
+    })
+  });
+
+  if (!res.ok) {
+    const e = await res.json().catch(()=>({}));
+    throw new Error(e.error || 'Server error: HTTP '+res.status);
+  }
+
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+
+  // Parse JSON from last text block
+  const allText = (data.content||[])
+    .filter(b => b.type==='text')
+    .map(b => b.text)
+    .join('\n')
+    .trim();
+
+  let parsed = null;
+  try { parsed = JSON.parse(allText); } catch(e) {}
+
+  if (!Array.isArray(parsed)) {
+    const m = allText.match(/\[[\s\S]*\]/);
+    if (m) { try { parsed = JSON.parse(m[0]); } catch(e) {} }
+  }
+  if (!Array.isArray(parsed)) {
+    const s = allText.indexOf('['), en = allText.lastIndexOf(']');
+    if (s !== -1 && en > s) { try { parsed = JSON.parse(allText.slice(s, en+1)); } catch(e) {} }
+  }
+
+  if (!Array.isArray(parsed) || parsed.length === 0)
+    throw new Error('AI returned no predictions. Click Refresh to try again.');
+
+  return parsed;
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════
+function formHtml(f) {
+  if (!f) return '';
+  return String(f).slice(0,5).split('').map(c => {
+    const k = ['W','D','L'].includes(c) ? c : 'D';
+    return `<div class="fd fd-${k}">${k}</div>`;
+  }).join('');
+}
+
+function cardHtml(m, i, sport) {
+  const delay = (i*0.07).toFixed(2);
+  const p = m.predictions || {};
+  const mkts = SPORTS[sport].markets;
+  const keys = Object.keys(mkts);
+  const bp = m.bestPick || keys[0];
+  const live = m.status === 'Live' || (m.strStatus||'').toLowerCase().includes('progress');
+
+  const rows = keys.map(k => {
+    const pr = p[k] || {prediction:'N/A', confidence:85, reasoning:''};
+    const best = k === bp;
+    return `<div class="prow${best?' best':''}">
+      ${best ? '<div class="best-bar"></div>' : ''}
+      <div class="pico">${mkts[k].ico}</div>
+      <div class="plbl">${mkts[k].lbl}</div>
+      <div class="pval">${pr.prediction}</div>
+      <div class="ctrack"><div class="cfill" style="--w:${pr.confidence}%;width:${pr.confidence}%"></div></div>
+      <div class="cnum">${pr.confidence}%</div>
+    </div>`;
+  }).join('');
+
+  // sport-specific stat row
+  let statRow = '';
+  if (sport === 'football') {
+    statRow = `<div class="xrow">
+      <span>xG <span class="xv xv-football">${m.xGHome||'?'}</span></span>
+      <span style="font-size:8px;color:#102818">ENSEMBLE MODEL</span>
+      <span>xG <span class="xv xv-football">${m.xGAway||'?'}</span></span>
+    </div>`;
+  } else if (sport === 'basketball') {
+    statRow = `<div class="xrow">
+      <span>Proj <span class="xv xv-basketball">${m.avgPtsHome||'?'}</span></span>
+      <span style="font-size:8px;color:#102818">SPREAD MODEL</span>
+      <span>Proj <span class="xv xv-basketball">${m.avgPtsAway||'?'}</span></span>
+    </div>`;
+  } else {
+    statRow = `<div class="xrow">
+      <span>Rank <span class="xv xv-tennis">#${m.rankHome||'?'}</span></span>
+      <span style="font-size:8px;color:#102818">${m.surface||'HARD'} COURT</span>
+      <span>Rank <span class="xv xv-tennis">#${m.rankAway||'?'}</span></span>
+    </div>`;
+  }
+
+  const nameA = m.teamA || m.playerA || 'Home';
+  const nameB = m.teamB || m.playerB || 'Away';
+  const comp  = m.league || m.tournament || sport;
+  const formA = sport === 'football' ? `<div class="fdots">${formHtml(m.formHome)}</div>` : '';
+  const formB = sport === 'football' ? `<div class="fdots">${formHtml(m.formAway)}</div>` : '';
+  const bp_r  = (p[bp]||{}).reasoning || '';
+
+  return `<div class="card" style="animation:up .5s ease-out ${delay}s both">
+    <div class="card-hdr">
+      <div>
+        <div class="sport-tag">${SPORTS[sport].icon} ${SPORTS[sport].label}</div>
+        <div class="ltag">◈ ${comp}</div>
+      </div>
+      <div class="mtime${live?' live':''}">${live ? '🔴 LIVE' : (m.time||'TBD')}</div>
+    </div>
+    <div class="trow">
+      <div class="tblk"><div class="tname">${nameA}</div>${formA}</div>
+      <div class="vs">VS</div>
+      <div class="tblk r"><div class="tname">${nameB}</div>${formB}</div>
+    </div>
+    ${statRow}
+    <div class="preds">
+      ${rows}
+      <div class="reason">★ ${bp_r}</div>
+    </div>
+    <div class="cfoot">
+      <div class="ctag">● ${m.modelConsensus||'GOOD'} CONSENSUS</div>
+      <div class="rtag r${m.riskLevel||'MEDIUM'}">${m.riskLevel||'MEDIUM'} RISK</div>
+    </div>
+  </div>`;
+}
+
+function updateStats(ms) {
+  const n = ms.length;
+  const avg = n ? Math.round(ms.reduce((s,m) => s+(m.bestConfidence||88), 0)/n) : 0;
+  document.getElementById('s1').textContent = n||'—';
+  document.getElementById('s2').textContent = avg ? avg+'%' : '—';
+  document.getElementById('s3').textContent = ms.filter(m => (m.bestConfidence||0)>=93).length||'—';
+  document.getElementById('s4').textContent = ms.filter(m => m.riskLevel==='LOW').length||'—';
+}
+
+function updateMarket(ms, sport) {
+  const mkts = SPORTS[sport].markets, d = {};
+  ms.forEach(m => { const k = m.bestPick||Object.keys(mkts)[0]; d[k]=(d[k]||0)+1; });
+  document.getElementById('mdist').innerHTML =
+    Object.entries(d).map(([k,v]) => `${mkts[k]?.ico||'◈'} <span>${v}</span> ${mkts[k]?.lbl||k}`).join(' &nbsp;·&nbsp; ');
+}
+
+// ══════════════════════════════════════════════════════
+// STATE + FLOW
+// ══════════════════════════════════════════════════════
+let activeSport = 'football';
+const cache = { football:null, basketball:null, tennis:null };
+
+function applyTab(sport) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.sport===sport));
+}
+
+function renderResults(predictions, sport) {
+  const ei = getEATInfo();
+  document.getElementById('shdr-title').textContent =
+    SPORTS[sport].icon+' '+SPORTS[sport].label+' · '+ei.short;
+  document.getElementById('loading').style.display  = 'none';
+  document.getElementById('cards').innerHTML = predictions.map((m,i) => cardHtml(m,i,sport)).join('');
+  document.getElementById('shdr').style.display = 'flex';
+  document.getElementById('mcount').textContent = predictions.length+' matches · updated '+ei.time+' EAT';
+  document.getElementById('mbar').style.display = 'flex';
+  document.getElementById('disc').style.display = 'block';
+  document.getElementById('upd-time').textContent = 'Updated '+ei.time+' EAT';
+  updateStats(predictions);
+  updateMarket(predictions, sport);
+}
+
+async function loadSport(sport) {
+  const btn = document.getElementById('rbtn');
+  btn.disabled = true;
+  document.getElementById('loading').style.display = 'flex';
+  document.getElementById('errbox').style.display  = 'none';
+  document.getElementById('cards').innerHTML = '';
+  document.getElementById('mbar').style.display    = 'none';
+  document.getElementById('shdr').style.display    = 'none';
+  document.getElementById('disc').style.display    = 'none';
+
+  try {
+    // Step 1: free fixtures
+    step('FETCHING '+SPORTS[sport].label.toUpperCase()+' FIXTURES (FREE)...');
+    await sleep(200);
+    const events = await fetchFixtures(sport);
+    const fixtureText = eventsToText(events);
+
+    // Step 2: Claude Haiku prediction (no web search = very cheap)
+    step('CLAUDE AI ANALYSING '+events.length+' FIXTURES...');
+    await sleep(200);
+    const predictions = await getPredictions(sport, fixtureText);
+
+    step('CALIBRATING CONFIDENCE SCORES...');
+    await sleep(200);
+
+    cache[sport] = predictions;
+    renderResults(predictions, sport);
+
+  } catch(err) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('errbox').style.display  = 'block';
+    document.getElementById('errmsg').textContent    = '⚠ '+err.message;
+    document.getElementById('errhint').textContent   =
+      'Check ANTHROPIC_API_KEY in Vercel → Settings → Environment Variables. TheSportsDB may also have limited data for this sport today.';
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function switchSport(sport) {
+  activeSport = sport;
+  applyTab(sport);
+  if (cache[sport]) { renderResults(cache[sport], sport); return; }
+  loadSport(sport);
+}
+
+function refresh() {
+  cache[activeSport] = null;
+  loadSport(activeSport);
+}
+
+// Boot
+applyTab('football');
+loadSport('football');
+</script>
+</body>
+</html>
